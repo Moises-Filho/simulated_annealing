@@ -9,67 +9,16 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-
-// Estrutura para representar uma cidade com coordenadas (x, y)
-struct Cidade {
-    int id;
-    double x;
-    double y;
-};
-
-// Função para calcular a distância  entre duas cidades
-double calcularDistancia(const Cidade& cidade1, const Cidade& cidade2) {
-    double dx = cidade1.x - cidade2.x;
-    double dy = cidade1.y - cidade2.y;
-    return std::sqrt(dx * dx + dy * dy);
-}
-
-// Função para carregar as cidades de um arquivo TSPLIB
-std::vector<Cidade> carregarCidadesDoArquivo(const std::string& caminhoArquivo) {
-    std::vector<Cidade> cidades;
-    std::ifstream arquivo(caminhoArquivo);
-
-    if (!arquivo.is_open()) {
-        std::cerr << "Erro: Nao foi possivel abrir o arquivo " << caminhoArquivo << std::endl;
-        return cidades;
-    }
-
-    std::string linha;
-    bool naSecaoCoordenadas = false;
-
-    while (std::getline(arquivo, linha)) {
-        if (linha.find("NODE_COORD_SECTION") != std::string::npos) {
-            naSecaoCoordenadas = true;
-            continue;
-        }
-
-        if (linha.find("EOF") != std::string::npos) {
-            break;
-        }
-
-        if (naSecaoCoordenadas) {
-            std::istringstream iss(linha);
-            Cidade cidade;
-            iss >> cidade.id >> cidade.x >> cidade.y;
-            cidades.push_back(cidade);
-        }
-    }
-
-    arquivo.close();
-    return cidades;
-}
+#include "TSPInstance.h"
 
 
-// Função para calcular o custo total de um caminho (rota)
-double calcularCustoTotal(const std::vector<Cidade>& cidades, const std::vector<int>& rota) {
+double calcularCustoTotal(const TSPInstance& instance, const std::vector<int>& rota) {
     double custo = 0.0;
     for (size_t i = 0; i < rota.size() - 1; ++i) {
-        int cidadeAtual = rota[i] - 1; // Ajusta para índice 0-based
-        int proximaCidade = rota[i + 1] - 1;
-        custo += calcularDistancia(cidades[cidadeAtual], cidades[proximaCidade]);
+        custo += instance.getDistance(rota[i], rota[i + 1]);
     }
     // Voltar para a cidade inicial
-    custo += calcularDistancia(cidades[rota.back() - 1], cidades[rota[0] - 1]);
+    custo += instance.getDistance(rota.back(), rota[0]);
     return custo;
 }
 
@@ -95,9 +44,11 @@ std::vector<int> gerarRotaVizinha(const std::vector<int>& rota) {
 }
 
 // Função Simulated Annealing
-std::vector<int> simulatedAnnealing(const std::vector<Cidade>& cidades, double temperaturaInicial, double taxaResfriamento, int iteracoesPorTemperatura) {
-    std::vector<int> melhorRota = gerarRotaInicial(cidades.size());
-    double melhorCusto = calcularCustoTotal(cidades, melhorRota);
+std::vector<int> simulatedAnnealing(const TSPInstance& instance, double temperaturaInicial, 
+    double taxaResfriamento, int iteracoesPorTemperatura) {
+
+    std::vector<int> melhorRota = gerarRotaInicial(instance.getDimension());
+    double melhorCusto = calcularCustoTotal(instance, melhorRota);
 
     std::vector<int> rotaAtual = melhorRota;
     double custoAtual = melhorCusto;
@@ -107,7 +58,7 @@ std::vector<int> simulatedAnnealing(const std::vector<Cidade>& cidades, double t
     while (temperatura > 1.0) {
         for (int i = 0; i < iteracoesPorTemperatura; ++i) {
             std::vector<int> novaRota = gerarRotaVizinha(rotaAtual);
-            double novoCusto = calcularCustoTotal(cidades, novaRota);
+            double novoCusto = calcularCustoTotal(instance, novaRota);
 
             double deltaCusto = novoCusto - custoAtual;
 
@@ -130,18 +81,27 @@ std::vector<int> simulatedAnnealing(const std::vector<Cidade>& cidades, double t
 int main() {
     srand(static_cast<unsigned int>(time(0)));
 
-    // Carregar as cidades de um arquivo TSPLIB
-    // std::string caminhoArquivo = "TSPlib/ali535.tsp";
-    std::string caminhoArquivo = "TSPlib/berlin52.tsp";
 
-    std::vector<Cidade> cidades = carregarCidadesDoArquivo(caminhoArquivo);
+    TSPInstance instance;
+    try {
+        // instance.loadFromFile("TSPlib/berlin52.tsp");
+        // instance.loadFromFile("TSPlib/brazil58.tsp");
+        // instance.loadFromFile("TSPlib/a280.tsp");
+        instance.loadFromFile("TSPlib/gr229.tsp");
 
-    if (cidades.empty()) {
-        std::cerr << "Erro: Nenhuma cidade foi carregada. Verifique o arquivo TSPLIB." << std::endl;
+
+        // Verificar se é um problema simétrico
+        if (instance.getType() != TSPInstance::ProblemType::TSP) {
+            std::cerr << "Erro: O problema não é um TSP simétrico." << std::endl;
+            return 1;
+        }
+        
+        std::cout << "Instância carregada com sucesso: " << instance.getName() << std::endl;
+        std::cout << "Número de cidades: " << instance.getDimension() << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Erro ao carregar arquivo: " << e.what() << std::endl;
         return 1;
     }
-
-    std::cout << "Cidades carregadas com sucesso." << std::endl;
 
     // Parâmetros do Simulated Annealing
     double temperaturaInicial = 10000.0;
@@ -149,14 +109,15 @@ int main() {
     int iteracoesPorTemperatura = 10000;
 
     // Executar o Simulated Annealing
-    std::vector<int> melhorRota = simulatedAnnealing(cidades, temperaturaInicial, taxaResfriamento, iteracoesPorTemperatura);
+    std::vector<int> melhorRota = simulatedAnnealing(instance, temperaturaInicial, taxaResfriamento, iteracoesPorTemperatura);
 
     // Exibir a melhor rota encontrada
     std::cout << "Melhor rota encontrada: ";
-    for (int cidade : melhorRota) {
-        std::cout << cidade + 1 << " "; // Ajustar o ID para começar em 1
+    for (size_t i = 0; i < melhorRota.size(); ++i) {
+        std::cout << melhorRota[i] + 1 << " ";
     }
-    std::cout << "\nCusto total: " << calcularCustoTotal(cidades, melhorRota) << std::endl;
+    std::cout << melhorRota[0] + 1 << std::endl;
+    std::cout << "\nCusto total: " << calcularCustoTotal(instance, melhorRota) << std::endl;
 
     return 0;
 }
