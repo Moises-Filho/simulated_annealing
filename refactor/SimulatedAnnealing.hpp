@@ -31,7 +31,6 @@ public:
         custo += instance.getDistance(rota.back(), rota[0]);
         return custo;
     }
-
     std::vector<int> gerarRotaInicial() const {
         std::vector<int> rota(instance.getDimension());
         for (size_t i = 0; i < rota.size(); ++i) rota[i] = i;
@@ -39,9 +38,35 @@ public:
         std::mt19937 g(rd());
         std::shuffle(rota.begin(), rota.end(), g);
         return rota;
+    }   
+    // metodo do Insertion Move
+    std::vector<int> gerarVizinhaInsertion(const std::vector<int>& rota) const {
+        std::vector<int> nova = rota;
+        size_t n = nova.size();
+        
+        if (n <= 1) return nova;
+        
+        // Seleciona uma posicao aleatoria para remover
+        size_t pos_remover = rand() % n;
+        int cidade = nova[pos_remover];
+        
+        // Remove a cidade
+        nova.erase(nova.begin() + pos_remover);
+        
+        // Seleciona uma nova posicao para inserir (tem que ser diferente da original)
+        size_t pos_inserir = rand() % (n - 1);
+        while (pos_inserir == pos_remover) {
+            pos_inserir = rand() % (n - 1);
+        }
+        
+        // Insere a cidade na nova posição
+        nova.insert(nova.begin() + pos_inserir, cidade);
+        
+        return nova;
     }
 
-    std::vector<int> gerarVizinha(const std::vector<int>& rota) const {
+    // metodo do swap
+    std::vector<int> gerarVizinhaSwap(const std::vector<int>& rota) const {
         std::vector<int> nova = rota;
         size_t i = rand() % rota.size();
         size_t j = rand() % rota.size();

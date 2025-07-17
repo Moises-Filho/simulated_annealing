@@ -8,6 +8,12 @@ class SAComum : public SimulatedAnnealing {
 public:
     using SimulatedAnnealing::SimulatedAnnealing;
 
+    virtual std::vector<int> gerarVizinha(const std::vector<int>& rota) const {
+        // return gerarVizinhaSwap(rota); 
+        return gerarVizinhaInsertion(rota);
+
+    }
+
     std::vector<int> executar() override {
         std::vector<int> melhor = gerarRotaInicial();
         double melhorCusto = calcularCusto(melhor);
@@ -47,6 +53,11 @@ public:
 class SAReaquecimentoFixo : public SimulatedAnnealing {
 public:
     using SimulatedAnnealing::SimulatedAnnealing;
+
+    virtual std::vector<int> gerarVizinha(const std::vector<int>& rota) const {
+        // return gerarVizinhaSwap(rota);
+        return gerarVizinhaInsertion(rota);
+    }
 
     std::vector<int> executar() override {
         const std::vector<double> tempsReaquecimento = {1000.0, 500.0, 333.0};
