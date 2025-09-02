@@ -32,10 +32,9 @@ std::vector<int> SA::executar() {
             }
 
             ctIteracao++;
-            graph_data.push_back({ctIteracao, temperatura, custoAtual, melhorCusto});
         }
-
         temperatura *= taxaResfriamento; // resfriamento
+        graph_data.push_back({ctIteracao, temperatura, custoAtual, melhorCusto});
     }
 
     std::cout << "Melhor custo encontrado: " << melhorCusto << std::endl;

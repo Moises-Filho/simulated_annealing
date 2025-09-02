@@ -54,13 +54,13 @@ std::vector<int> SAReaquecimento::executar() {
                     }
                 }
             }
-            graph_data.push_back({ctIteracao, temperatura, melhorCustoFase, melhorCusto});
 
             if (melhorCustoFase < melhorCusto) {
                 melhorRota = melhorRotaFase;
                 melhorCusto = melhorCustoFase;
             }
             temperatura *= coolingRate[fase];
+            graph_data.push_back({ctIteracao, temperatura, melhorCustoFase, melhorCusto});
         }
 
         std::cout << "Reaquecimento aplicado. Nova temperatura: " << startTemp[fase] << std::endl;
